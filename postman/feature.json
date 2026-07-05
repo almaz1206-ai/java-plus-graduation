@@ -1,0 +1,648 @@
+{
+  "info": {
+    "name": "EWM Comments & Likes",
+    "description": "Тесты для API комментариев и лайков к событиям (feature/comments)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "baseUrl",  "value": "http://localhost:8080"},
+    {"key": "userId1",  "value": ""},
+    {"key": "userId2",  "value": ""},
+    {"key": "catId",    "value": ""},
+    {"key": "eventId",  "value": ""},
+    {"key": "commentId","value": ""},
+    {"key": "email1",   "value": ""},
+    {"key": "email2",   "value": ""},
+    {"key": "catName",  "value": ""}
+  ],
+  "item": [
+    {
+      "name": "Setup",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const ts = Date.now();",
+              "pm.collectionVariables.set('email1', 'author' + ts + '@example.com');",
+              "pm.collectionVariables.set('email2', 'liker' + ts + '@example.com');",
+              "pm.collectionVariables.set('catName', 'TestCat' + ts);"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Create User 1 (author)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('userId1', body.id);",
+                  "pm.test('Has id', () => pm.expect(body.id).to.be.a('number'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/admin/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Автор комментария\", \"email\": \"{{email1}}\"}"
+            }
+          }
+        },
+        {
+          "name": "Create User 2 (liker)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('userId2', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/admin/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"Лайкер\", \"email\": \"{{email2}}\"}"
+            }
+          }
+        },
+        {
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('catId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/admin/categories",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"{{catName}}\"}"
+            }
+          }
+        },
+        {
+          "name": "Create Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('eventId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/users/{{userId1}}/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"Событие для тестов\", \"annotation\": \"Аннотация достаточной длины для валидации поля\", \"description\": \"Описание достаточной длины для прохождения валидации поля описания события\", \"category\": {{catId}}, \"eventDate\": \"2030-01-01 12:00:00\", \"location\": {\"lat\": 55.7, \"lon\": 37.6}, \"paid\": false, \"participantLimit\": 0, \"requestModeration\": false}"
+            }
+          }
+        },
+        {
+          "name": "Publish Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('State is PUBLISHED', () => pm.expect(pm.response.json().state).to.eql('PUBLISHED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/admin/events/{{eventId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"stateAction\": \"PUBLISH_EVENT\"}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments — Happy Path",
+      "item": [
+        {
+          "name": "Create Comment (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('commentId', body.id);",
+                  "pm.test('Text matches', () => pm.expect(body.text).to.eql('Очень интересное событие!'));",
+                  "pm.test('Likes are 0', () => pm.expect(body.likesCount).to.eql(0));",
+                  "pm.test('Edited is null', () => pm.expect(body.edited).to.be.null);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/users/{{userId1}}/comments/{{eventId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\": \"Очень интересное событие!\"}"
+            }
+          }
+        },
+        {
+          "name": "Get Comment by ID (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('ID matches', () => pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('commentId'))));",
+                  "pm.test('Has author', () => pm.expect(body.author).to.be.an('object'));",
+                  "pm.test('Has event', () => pm.expect(body.event).to.be.an('object'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/comments/{{commentId}}"
+          }
+        },
+        {
+          "name": "Get Comments by Event (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Is array', () => pm.expect(body).to.be.an('array'));",
+                  "pm.test('Non-empty', () => pm.expect(body.length).to.be.at.least(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/comments/event/{{eventId}}?from=0&size=10&sortBy=DESC",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "event", "{{eventId}}"],
+              "query": [
+                {"key": "from",   "value": "0"},
+                {"key": "size",   "value": "10"},
+                {"key": "sortBy", "value": "DESC"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Comments by Event ASC (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Is array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/comments/event/{{eventId}}?from=0&size=10&sortBy=ASC",
+              "host": ["{{baseUrl}}"],
+              "path": ["comments", "event", "{{eventId}}"],
+              "query": [
+                {"key": "from",   "value": "0"},
+                {"key": "size",   "value": "10"},
+                {"key": "sortBy", "value": "ASC"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Comment (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Text updated', () => pm.expect(body.text).to.eql('Обновлённый комментарий'));",
+                  "pm.test('Edited is set', () => pm.expect(body.edited).to.not.be.null);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/users/{{userId1}}/comments/{{commentId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\": \"Обновлённый комментарий\"}"
+            }
+          }
+        },
+        {
+          "name": "Get User's Comments (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Is array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId1}}/comments?from=0&size=10&sortBy=DESC",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId1}}", "comments"],
+              "query": [
+                {"key": "from",   "value": "0"},
+                {"key": "size",   "value": "10"},
+                {"key": "sortBy", "value": "DESC"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Like by User2 (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Likes = 1', () => pm.expect(pm.response.json().likesCount).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/{{userId2}}/comments/{{commentId}}/like"
+          }
+        },
+        {
+          "name": "Delete Like by User2 (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/{{userId2}}/comments/{{commentId}}/like"
+          }
+        },
+        {
+          "name": "Delete Comment by User (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/{{userId1}}/comments/{{commentId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments — Error Cases",
+      "item": [
+        {
+          "name": "Create Comment — text too short (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/users/{{userId1}}/comments/{{eventId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\": \"Hi\"}"
+            }
+          }
+        },
+        {
+          "name": "Create Comment — blank text (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/users/{{userId1}}/comments/{{eventId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\": \"   \"}"
+            }
+          }
+        },
+        {
+          "name": "Create Comment — unknown user (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/users/999999/comments/{{eventId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\": \"Комментарий от несуществующего пользователя\"}"
+            }
+          }
+        },
+        {
+          "name": "Create Comment — unknown event (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/users/{{userId1}}/comments/999999",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\": \"Комментарий к несуществующему событию\"}"
+            }
+          }
+        },
+        {
+          "name": "Setup: recreate comment for error tests",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('commentId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/users/{{userId1}}/comments/{{eventId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\": \"Комментарий для тестов ошибок\"}"
+            }
+          }
+        },
+        {
+          "name": "Update Comment — not author (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/users/{{userId2}}/comments/{{commentId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\": \"Чужой пытается редактировать комментарий\"}"
+            }
+          }
+        },
+        {
+          "name": "Like own comment (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/{{userId1}}/comments/{{commentId}}/like"
+          }
+        },
+        {
+          "name": "Like comment — first like by User2 (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/{{userId2}}/comments/{{commentId}}/like"
+          }
+        },
+        {
+          "name": "Like comment twice — duplicate (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/users/{{userId2}}/comments/{{commentId}}/like"
+          }
+        },
+        {
+          "name": "Delete Like — like not found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/{{userId1}}/comments/{{commentId}}/like"
+          }
+        },
+        {
+          "name": "Delete Comment — not author (409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/{{userId2}}/comments/{{commentId}}"
+          }
+        },
+        {
+          "name": "Get Comment — not found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/comments/999999"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Admin Delete Comment (204)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/admin/comments/{{commentId}}"
+          }
+        },
+        {
+          "name": "Admin Delete Comment — not found (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/admin/comments/999999"
+          }
+        }
+      ]
+    }
+  ]
+}
