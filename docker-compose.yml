@@ -2,94 +2,215 @@ services:
   discovery-server:
     build: infra/discovery-server
     image: discovery-server
-    ports:
-      - "8761:8761"
+    restart: unless-stopped
+    ports: ["8761:8761"]
+    healthcheck: &infra-health
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8761'"]
+      start_period: 20s
+      timeout: 3s
+      interval: 5s
+      retries: 12
 
   config-server:
     build: infra/config-server
     image: config-server
+    restart: unless-stopped
+    ports: ["8888:8888"]
     depends_on:
-      discovery-server:
-        condition: service_started
+      discovery-server: {condition: service_healthy}
     environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8888'"]
+      start_period: 20s
+      timeout: 3s
+      interval: 5s
+      retries: 12
 
   gateway-server:
     build: infra/gateway-server
     image: gateway-server
-    ports:
-      - "8080:8080"
+    restart: unless-stopped
+    ports: ["8080:8080"]
     depends_on:
-      discovery-server:
-        condition: service_started
-      config-server:
-        condition: service_started
-      ewm-service:
-        condition: service_started
+      discovery-server: {condition: service_healthy}
+      config-server: {condition: service_healthy}
+      user-service: {condition: service_healthy}
+      category-service: {condition: service_healthy}
+      event-service: {condition: service_healthy}
+      request-service: {condition: service_healthy}
     environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      CONFIG_SERVER_URL: http://config-server:8888
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8080'"]
+      start_period: 30s
+      timeout: 3s
+      interval: 5s
+      retries: 18
+
+  user-service:
+    build: core/user-service
+    image: user-service
+    restart: unless-stopped
+    depends_on:
+      discovery-server: {condition: service_healthy}
+      config-server: {condition: service_healthy}
+      user-db: {condition: service_healthy}
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/users
+      SPRING_DATASOURCE_USERNAME: users
+      SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD:-users}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      CONFIG_SERVER_URL: http://config-server:8888
+    healthcheck: &user-health
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8081'"]
+      start_period: 30s
+      timeout: 3s
+      interval: 5s
+      retries: 18
+
+  user-db:
+    image: postgres:16.1
+    restart: unless-stopped
+    ports: ["5434:5432"]
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: users
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD:-users}
+    healthcheck: &db-health
+      test: ["CMD-SHELL", "pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER"]
+      start_period: 20s
+      timeout: 5s
+      interval: 5s
+      retries: 12
+
+  category-service:
+    build: core/category-service
+    image: category-service
+    restart: unless-stopped
+    depends_on:
+      discovery-server: { condition: service_healthy }
+      config-server: { condition: service_healthy }
+      user-service: { condition: service_healthy }
+      category-db: { condition: service_healthy }
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://category-db:5432/category
+      SPRING_DATASOURCE_USERNAME: category
+      SPRING_DATASOURCE_PASSWORD: ${CATEGORY_DB_PASSWORD:-category}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      CONFIG_SERVER_URL: http://config-server:8888
+    healthcheck:
+      test: [ "CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8084'" ]
+      start_period: 30s
+      timeout: 3s
+      interval: 5s
+      retries: 18
+
+  category-db:
+    image: postgres:16.1
+    restart: unless-stopped
+    ports: ["5435:5432"]
+    environment:
+      POSTGRES_DB: category
+      POSTGRES_USER: category
+      POSTGRES_PASSWORD: ${CATEGORY_DB_PASSWORD:-category}
+    healthcheck: *db-health
 
   stats-server:
     build: ewm-stats-service/stats-server
     image: stats-server
+    restart: unless-stopped
     depends_on:
-      discovery-server:
-        condition: service_started
-      config-server:
-        condition: service_started
-      stats-db:
-        condition: service_healthy
+      discovery-server: {condition: service_healthy}
+      config-server: {condition: service_healthy}
+      stats-db: {condition: service_healthy}
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://stats-db:5432/stats
-      - SPRING_DATASOURCE_USERNAME=stats
-      - SPRING_DATASOURCE_PASSWORD=stats
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+      SPRING_DATASOURCE_URL: jdbc:postgresql://stats-db:5432/stats
+      SPRING_DATASOURCE_USERNAME: stats
+      SPRING_DATASOURCE_PASSWORD: ${STATS_DB_PASSWORD:-stats}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      CONFIG_SERVER_URL: http://config-server:8888
+    healthcheck: &stats-health
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/9090'"]
+      start_period: 30s
+      timeout: 3s
+      interval: 5s
+      retries: 18
 
   stats-db:
     image: postgres:16.1
-    ports:
-      - "5433:5432"
+    restart: unless-stopped
+    ports: ["5433:5432"]
     environment:
-      - POSTGRES_DB=stats
-      - POSTGRES_USER=stats
-      - POSTGRES_PASSWORD=stats
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
-      start_period: 30s
-      timeout: 5s
-      interval: 5s
-      retries: 10
+      POSTGRES_DB: stats
+      POSTGRES_USER: stats
+      POSTGRES_PASSWORD: ${STATS_DB_PASSWORD:-stats}
+    healthcheck: *db-health
 
-  ewm-service:
-    build: core/main-service
-    image: ewm-service
+  event-service:
+    build: core/event-service
+    image: event-service
+    restart: unless-stopped
     depends_on:
-      discovery-server:
-        condition: service_started
-      config-server:
-        condition: service_started
-      ewm-db:
-        condition: service_healthy
-      stats-server:
-        condition: service_started
+      discovery-server: {condition: service_healthy}
+      config-server: {condition: service_healthy}
+      user-service: {condition: service_healthy}
+      category-service: {condition: service_healthy}
+      stats-server: {condition: service_healthy}
+      event-db: {condition: service_healthy}
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/ewm
-      - SPRING_DATASOURCE_USERNAME=ewm
-      - SPRING_DATASOURCE_PASSWORD=ewm
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
-      - STATS_SERVER_URL=http://stats-server
-
-  ewm-db:
-    image: postgres:16.1
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_DB=ewm
-      - POSTGRES_USER=ewm
-      - POSTGRES_PASSWORD=ewm
-    healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      SPRING_DATASOURCE_URL: jdbc:postgresql://event-db:5432/events
+      SPRING_DATASOURCE_USERNAME: events
+      SPRING_DATASOURCE_PASSWORD: ${EVENT_DB_PASSWORD:-events}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      CONFIG_SERVER_URL: http://config-server:8888
+    healthcheck: &event-health
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8082'"]
       start_period: 30s
-      timeout: 5s
+      timeout: 3s
       interval: 5s
-      retries: 10
+      retries: 18
+
+  event-db:
+    image: postgres:16.1
+    restart: unless-stopped
+    ports: ["5436:5432"]
+    environment:
+      POSTGRES_DB: events
+      POSTGRES_USER: events
+      POSTGRES_PASSWORD: ${EVENT_DB_PASSWORD:-events}
+    healthcheck: *db-health
+
+  request-service:
+    build: core/request-service
+    image: request-service
+    restart: unless-stopped
+    depends_on:
+      discovery-server: {condition: service_healthy}
+      config-server: {condition: service_healthy}
+      user-service: {condition: service_healthy}
+      event-service: {condition: service_healthy}
+      request-db: {condition: service_healthy}
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://request-db:5432/requests
+      SPRING_DATASOURCE_USERNAME: requests
+      SPRING_DATASOURCE_PASSWORD: ${REQUEST_DB_PASSWORD:-requests}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      CONFIG_SERVER_URL: http://config-server:8888
+    healthcheck: &request-health
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8083'"]
+      start_period: 30s
+      timeout: 3s
+      interval: 5s
+      retries: 18
+
+  request-db:
+    image: postgres:16.1
+    restart: unless-stopped
+    ports: ["5437:5432"]
+    environment:
+      POSTGRES_DB: requests
+      POSTGRES_USER: requests
+      POSTGRES_PASSWORD: ${REQUEST_DB_PASSWORD:-requests}
+    healthcheck: *db-health
