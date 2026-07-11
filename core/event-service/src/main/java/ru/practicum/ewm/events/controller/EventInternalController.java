@@ -26,11 +26,6 @@ public class EventInternalController {
         return contract.getParticipationDetails(eventId);
     }
 
-    @GetMapping("/{eventId}/participation-info")
-    public EventParticipationResponse participationInfo(@PathVariable Long eventId) {
-        return contract.getParticipationDetails(eventId);
-    }
-
     @GetMapping("/{eventId}/owner")
     public EventOwnerResponse owner(@PathVariable Long eventId) {
         EventParticipationResponse event = contract.getParticipationDetails(eventId);

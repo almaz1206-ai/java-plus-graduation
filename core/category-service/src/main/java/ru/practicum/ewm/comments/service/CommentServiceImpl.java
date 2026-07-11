@@ -162,7 +162,8 @@ public class CommentServiceImpl implements CommentService {
     }
 
     private void requireAuthor(Comment comment, Long userId) {
-        if (!comment.getAuthorId().equals(userId)) throw new ConflictException("Only the author can modify the comment.");
+        if (!comment.getAuthorId().equals(userId))
+            throw new ConflictException("Only the author can modify the comment.");
     }
 
     private void delete(Long id) {

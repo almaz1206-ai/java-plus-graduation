@@ -22,7 +22,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
-    @Mock UserRepository repository;
+    @Mock
+    UserRepository repository;
     UserServiceImpl service;
 
     @BeforeEach
@@ -33,7 +34,9 @@ class UserServiceImplTest {
     @Test
     void createsUser() {
         when(repository.save(any(User.class))).thenAnswer(invocation -> {
-            User user = invocation.getArgument(0); user.setId(1L); return user;
+            User user = invocation.getArgument(0);
+            user.setId(1L);
+            return user;
         });
         var result = service.addUser(new NewUserRequest("user@example.com", "User"));
         assertThat(result.getId()).isEqualTo(1L);
@@ -61,6 +64,10 @@ class UserServiceImplTest {
     }
 
     private User user(Long id) {
-        User user = new User(); user.setId(id); user.setName("User"); user.setEmail("user@example.com"); return user;
+        User user = new User();
+        user.setId(id);
+        user.setName("User");
+        user.setEmail("user@example.com");
+        return user;
     }
 }

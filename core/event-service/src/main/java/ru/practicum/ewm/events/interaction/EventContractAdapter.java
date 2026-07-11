@@ -8,7 +8,6 @@ import ru.practicum.ewm.events.model.Event;
 import ru.practicum.ewm.events.repository.EventRepository;
 import ru.practicum.ewm.events.service.EventEnricher;
 import ru.practicum.interaction.common.IdsRequest;
-import ru.practicum.interaction.event.CategoriesResponse;
 import ru.practicum.interaction.event.CategoryResponse;
 import ru.practicum.interaction.event.EventContract;
 import ru.practicum.interaction.event.EventParticipationResponse;

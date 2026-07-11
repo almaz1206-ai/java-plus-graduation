@@ -9,5 +9,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @EnableFeignClients(basePackages = "ru.practicum.ewm.request.interaction")
 @SpringBootApplication(scanBasePackages = "ru.practicum.ewm.request")
 public class RequestServiceApp {
-    public static void main(String[] args) { SpringApplication.run(RequestServiceApp.class, args); }
+    public static void main(String[] args) {
+        SpringApplication.run(RequestServiceApp.class, args);
+    }
 }

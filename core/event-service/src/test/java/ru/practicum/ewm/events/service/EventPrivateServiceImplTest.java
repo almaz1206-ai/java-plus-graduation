@@ -28,50 +28,72 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EventPrivateServiceImplTest {
-    @Mock EventRepository repository;
-    @Mock UserContract users;
-    @Mock CategoryContract categories;
-    @Mock EventEnricher enricher;
-    @InjectMocks EventPrivateServiceImpl service;
+    @Mock
+    EventRepository repository;
+    @Mock
+    UserContract users;
+    @Mock
+    CategoryContract categories;
+    @Mock
+    EventEnricher enricher;
+    @InjectMocks
+    EventPrivateServiceImpl service;
 
     @BeforeEach
     void setBusinessParameters() {
         ReflectionTestUtils.setField(service, "userMinHours", 2L);
     }
 
-    @Test void createsEvent() {
+    @Test
+    void createsEvent() {
         when(users.getById(1L)).thenReturn(new UserResponse(1L, "User", "u@example.com"));
         when(categories.getById(2L)).thenReturn(new CategoryResponse(2L, "Category"));
-        when(repository.save(any(Event.class))).thenAnswer(i -> { Event e=i.getArgument(0); e.setId(3L); return e; });
+        when(repository.save(any(Event.class))).thenAnswer(i -> {
+            Event e = i.getArgument(0);
+            e.setId(3L);
+            return e;
+        });
         assertThat(service.addEvent(1L, newEvent()).getId()).isEqualTo(3L);
     }
 
-    @Test void updatesEvent() {
-        Event event = event(EventState.PENDING); when(repository.findByIdAndInitiatorId(3L, 1L)).thenReturn(Optional.of(event));
+    @Test
+    void updatesEvent() {
+        Event event = event(EventState.PENDING);
+        when(repository.findByIdAndInitiatorId(3L, 1L)).thenReturn(Optional.of(event));
         when(repository.save(event)).thenReturn(event);
         assertThat(service.updateUserEvent(1L, 3L, UpdateEventUserRequest.builder().title("Updated").build()).getTitle()).isEqualTo("Updated");
     }
 
-    @Test void rejectsInvalidDate() {
-        NewEventDto dto = newEvent(); dto.setEventDate(LocalDateTime.now().plusMinutes(10));
+    @Test
+    void rejectsInvalidDate() {
+        NewEventDto dto = newEvent();
+        dto.setEventDate(LocalDateTime.now().plusMinutes(10));
         assertThatThrownBy(() -> service.addEvent(1L, dto)).isInstanceOf(BadRequestException.class);
     }
 
-    @Test void reportsMissingUser() {
+    @Test
+    void reportsMissingUser() {
         when(users.getById(1L)).thenThrow(new NotFoundException("missing"));
         assertThatThrownBy(() -> service.addEvent(1L, newEvent())).isInstanceOf(NotFoundException.class);
     }
 
-    @Test void reportsMissingCategory() {
+    @Test
+    void reportsMissingCategory() {
         when(users.getById(1L)).thenReturn(new UserResponse(1L, "User", "u@example.com"));
         when(categories.getById(2L)).thenThrow(new NotFoundException("missing"));
         assertThatThrownBy(() -> service.addEvent(1L, newEvent())).isInstanceOf(NotFoundException.class);
     }
 
     private NewEventDto newEvent() {
-        NewEventDto d=new NewEventDto(); d.setTitle("Event"); d.setAnnotation("A".repeat(20)); d.setDescription("D".repeat(20));
-        d.setCategoryId(2L); d.setEventDate(LocalDateTime.now().plusDays(1)); return d;
+        NewEventDto d = new NewEventDto();
+        d.setTitle("Event");
+        d.setAnnotation("A".repeat(20));
+        d.setDescription("D".repeat(20));
+        d.setCategoryId(2L);
+        d.setEventDate(LocalDateTime.now().plusDays(1));
+        return d;
     }
+
     private Event event(EventState state) {
         return Event.builder().id(3L).title("Event").annotation("A".repeat(20)).description("D".repeat(20))
                 .initiatorId(1L).initiatorName("User").categoryId(2L).categoryName("Category")

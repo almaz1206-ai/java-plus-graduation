@@ -14,6 +14,8 @@ import ru.practicum.interaction.request.RequestStatus;
 import ru.practicum.interaction.request.RequestStatusResponse;
 import ru.practicum.interaction.request.RequestStatusesResponse;
 
+import java.util.stream.Collectors;
+
 @Component
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -29,7 +31,7 @@ public class RequestContractAdapter implements RequestContract {
     @Override
     public ConfirmedRequestCountsResponse getConfirmedCounts(IdsRequest eventIds) {
         var counts = repository.countByEventIdsAndStatus(eventIds.ids().stream().toList(), StatusRequest.CONFIRMED)
-                .stream().collect(java.util.stream.Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
+                .stream().collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
         return new ConfirmedRequestCountsResponse(eventIds.ids().stream()
                 .map(id -> new ConfirmedRequestCountResponse(id, counts.getOrDefault(id, 0L))).toList());
     }

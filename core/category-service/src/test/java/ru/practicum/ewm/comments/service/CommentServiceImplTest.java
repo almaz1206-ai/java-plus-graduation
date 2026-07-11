@@ -20,10 +20,14 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CommentServiceImplTest {
-    @Mock CommentRepository comments;
-    @Mock CommentLikeRepository likes;
-    @Mock UserContract users;
-    @Mock EventContract events;
+    @Mock
+    CommentRepository comments;
+    @Mock
+    CommentLikeRepository likes;
+    @Mock
+    UserContract users;
+    @Mock
+    EventContract events;
 
     @Test
     void createsCommentForPublishedEvent() {
@@ -31,7 +35,9 @@ class CommentServiceImplTest {
         when(events.hasState(2L, EventState.PUBLISHED)).thenReturn(true);
         when(events.getById(2L)).thenReturn(event());
         when(comments.save(any(Comment.class))).thenAnswer(invocation -> {
-            Comment value = invocation.getArgument(0); value.setId(3L); return value;
+            Comment value = invocation.getArgument(0);
+            value.setId(3L);
+            return value;
         });
         var service = new CommentServiceImpl(comments, likes, users, events);
         var result = service.createComment(1L, 2L, new NewCommentDto("Comment"));

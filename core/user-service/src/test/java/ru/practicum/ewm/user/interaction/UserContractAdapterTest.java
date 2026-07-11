@@ -17,11 +17,13 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserContractAdapterTest {
-    @Mock UserRepository repository;
+    @Mock
+    UserRepository repository;
 
     @Test
     void getsUsersByIdsWithSingleRepositoryCall() {
-        User first = user(1L); User second = user(2L);
+        User first = user(1L);
+        User second = user(2L);
         when(repository.findAllById(Set.of(1L, 2L))).thenReturn(List.of(first, second));
         var result = new UserContractAdapter(repository).getByIds(new IdsRequest(Set.of(1L, 2L)));
         assertThat(result.users()).extracting("id").containsExactlyInAnyOrder(1L, 2L);
@@ -29,6 +31,10 @@ class UserContractAdapterTest {
     }
 
     private User user(Long id) {
-        User user = new User(); user.setId(id); user.setName("User " + id); user.setEmail("u" + id + "@example.com"); return user;
+        User user = new User();
+        user.setId(id);
+        user.setName("User " + id);
+        user.setEmail("u" + id + "@example.com");
+        return user;
     }
 }

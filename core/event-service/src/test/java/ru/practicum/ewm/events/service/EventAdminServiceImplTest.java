@@ -25,33 +25,55 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EventAdminServiceImplTest {
-    @Mock EventRepository repository; @Mock CategoryContract categories; @Mock EventEnricher enricher;
-    @InjectMocks EventAdminServiceImpl service;
+    @Mock
+    EventRepository repository;
+    @Mock
+    CategoryContract categories;
+    @Mock
+    EventEnricher enricher;
+    @InjectMocks
+    EventAdminServiceImpl service;
 
     @BeforeEach
     void setBusinessParameters() {
         ReflectionTestUtils.setField(service, "adminMinHours", 1L);
     }
 
-    @Test void publishesPendingEvent() {
-        Event event=event(EventState.PENDING); when(repository.findById(1L)).thenReturn(Optional.of(event)); when(repository.save(event)).thenReturn(event);
-        UpdateEventAdminRequest request=new UpdateEventAdminRequest(); request.setStateAction(StateAction.PUBLISH_EVENT);
+    @Test
+    void publishesPendingEvent() {
+        Event event = event(EventState.PENDING);
+        when(repository.findById(1L)).thenReturn(Optional.of(event));
+        when(repository.save(event)).thenReturn(event);
+        UpdateEventAdminRequest request = new UpdateEventAdminRequest();
+        request.setStateAction(StateAction.PUBLISH_EVENT);
         assertThat(service.updateEventAdmin(1L, request).getState()).isEqualTo(EventState.PUBLISHED);
     }
-    @Test void rejectsPendingEvent() {
-        Event event=event(EventState.PENDING); when(repository.findById(1L)).thenReturn(Optional.of(event)); when(repository.save(event)).thenReturn(event);
-        UpdateEventAdminRequest request=new UpdateEventAdminRequest(); request.setStateAction(StateAction.REJECT_EVENT);
+
+    @Test
+    void rejectsPendingEvent() {
+        Event event = event(EventState.PENDING);
+        when(repository.findById(1L)).thenReturn(Optional.of(event));
+        when(repository.save(event)).thenReturn(event);
+        UpdateEventAdminRequest request = new UpdateEventAdminRequest();
+        request.setStateAction(StateAction.REJECT_EVENT);
         assertThat(service.updateEventAdmin(1L, request).getState()).isEqualTo(EventState.CANCELED);
     }
-    @Test void rejectsInvalidState() {
-        Event event=event(EventState.PUBLISHED); when(repository.findById(1L)).thenReturn(Optional.of(event));
-        UpdateEventAdminRequest request=new UpdateEventAdminRequest(); request.setStateAction(StateAction.PUBLISH_EVENT);
+
+    @Test
+    void rejectsInvalidState() {
+        Event event = event(EventState.PUBLISHED);
+        when(repository.findById(1L)).thenReturn(Optional.of(event));
+        UpdateEventAdminRequest request = new UpdateEventAdminRequest();
+        request.setStateAction(StateAction.PUBLISH_EVENT);
         assertThatThrownBy(() -> service.updateEventAdmin(1L, request)).isInstanceOf(ConflictException.class);
     }
-    @Test void performsAdministrativeSearch() {
+
+    @Test
+    void performsAdministrativeSearch() {
         when(repository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(event(EventState.PENDING))));
         assertThat(service.getEventsAdmin(null, null, null, null, null, 0, 10)).hasSize(1);
     }
+
     private Event event(EventState state) {
         return Event.builder().id(1L).title("Event").annotation("Annotation").description("Description").initiatorId(1L)
                 .initiatorName("User").categoryId(2L).categoryName("Category").createdOn(LocalDateTime.now())

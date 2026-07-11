@@ -17,10 +17,10 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, Long> 
     void deleteAllByCommentId(Long commentId);
 
     @Query("""
-       SELECT cl.comment.id, COUNT(cl)
-       FROM CommentLike cl
-       WHERE cl.comment.id IN :commentIds
-       GROUP BY cl.comment.id
-       """)
+            SELECT cl.comment.id, COUNT(cl)
+            FROM CommentLike cl
+            WHERE cl.comment.id IN :commentIds
+            GROUP BY cl.comment.id
+            """)
     List<Object[]> countLikesForComments(List<Long> commentIds);
 }

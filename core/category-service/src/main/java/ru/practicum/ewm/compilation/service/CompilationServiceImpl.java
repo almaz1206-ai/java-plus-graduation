@@ -15,11 +15,10 @@ import ru.practicum.ewm.compilation.repository.CompilationRepository;
 import ru.practicum.ewm.error.NotFoundException;
 import ru.practicum.interaction.common.IdsRequest;
 import ru.practicum.interaction.event.EventContract;
+import ru.practicum.interaction.event.EventSummaryResponse;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -58,7 +57,7 @@ public class CompilationServiceImpl implements CompilationService {
         log.info("Updating compilation id={}", compId);
         Compilation compilation = getOrThrow(compId);
 
-        java.util.Map<Long, ru.practicum.interaction.event.EventSummaryResponse> eventMap = null;
+        Map<Long, ru.practicum.interaction.event.EventSummaryResponse> eventMap = null;
         if (request.getEvents() != null) {
             eventMap = eventMap(request.getEvents());
             compilation.setEventIds(new HashSet<>(eventMap.keySet()));
@@ -81,9 +80,9 @@ public class CompilationServiceImpl implements CompilationService {
         List<Compilation> compilations = pinned != null ?
                 compilationRepository.findWithEventsByPinned(pinned, pageable) :
                 compilationRepository.findAllWithEvents(pageable);
-        Set<Long> ids = compilations.stream().flatMap(c -> c.getEventIds().stream()).collect(java.util.stream.Collectors.toSet());
+        Set<Long> ids = compilations.stream().flatMap(c -> c.getEventIds().stream()).collect(Collectors.toSet());
         var events = eventContract.getByIds(new IdsRequest(ids)).events().stream()
-                .collect(java.util.stream.Collectors.toMap(ru.practicum.interaction.event.EventSummaryResponse::id, e -> e));
+                .collect(Collectors.toMap(ru.practicum.interaction.event.EventSummaryResponse::id, e -> e));
         return compilations.stream().map(c -> CompilationMapper.toCompilationDto(c, events)).toList();
     }
 
@@ -92,7 +91,7 @@ public class CompilationServiceImpl implements CompilationService {
         log.info("Getting compilation id={}", compId);
         Compilation compilation = getOrThrow(compId);
         var events = eventContract.getByIds(new IdsRequest(compilation.getEventIds())).events().stream()
-                .collect(java.util.stream.Collectors.toMap(ru.practicum.interaction.event.EventSummaryResponse::id, e -> e));
+                .collect(Collectors.toMap(ru.practicum.interaction.event.EventSummaryResponse::id, e -> e));
         return CompilationMapper.toCompilationDto(compilation, events);
     }
 
@@ -101,17 +100,17 @@ public class CompilationServiceImpl implements CompilationService {
                 .orElseThrow(() -> new NotFoundException("Compilation with id=" + compId + " was not found"));
     }
 
-    private java.util.Map<Long, ru.practicum.interaction.event.EventSummaryResponse> eventMap(Set<Long> ids) {
+    private Map<Long, EventSummaryResponse> eventMap(Set<Long> ids) {
         if (ids == null || ids.isEmpty()) {
-            return java.util.Map.of();
+            return Map.of();
         }
         return eventContract.getByIds(new IdsRequest(ids)).events().stream()
-                .collect(java.util.stream.Collectors.toMap(ru.practicum.interaction.event.EventSummaryResponse::id, e -> e));
+                .collect(Collectors.toMap(ru.practicum.interaction.event.EventSummaryResponse::id, e -> e));
     }
 
     private CompilationDto toDto(Compilation compilation) {
         var events = eventContract.getByIds(new IdsRequest(compilation.getEventIds())).events().stream()
-                .collect(java.util.stream.Collectors.toMap(ru.practicum.interaction.event.EventSummaryResponse::id, e -> e));
+                .collect(Collectors.toMap(ru.practicum.interaction.event.EventSummaryResponse::id, e -> e));
         return CompilationMapper.toCompilationDto(compilation, events);
     }
 }

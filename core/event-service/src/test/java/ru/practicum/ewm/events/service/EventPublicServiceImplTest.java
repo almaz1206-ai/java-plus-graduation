@@ -21,15 +21,26 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EventPublicServiceImplTest {
-    @Mock EventRepository repository; @Mock EventStatsFeignClient stats; @Mock EventEnricher enricher; @Mock HttpServletRequest request;
-    @InjectMocks EventPublicServiceImpl service;
+    @Mock
+    EventRepository repository;
+    @Mock
+    EventStatsFeignClient stats;
+    @Mock
+    EventEnricher enricher;
+    @Mock
+    HttpServletRequest request;
+    @InjectMocks
+    EventPublicServiceImpl service;
 
-    @Test void performsPublicSearch() {
+    @Test
+    void performsPublicSearch() {
         when(repository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(event())));
-        when(request.getRequestURI()).thenReturn("/events"); when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+        when(request.getRequestURI()).thenReturn("/events");
+        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
         when(stats.getStats(any(), any(), anyList(), eq(true))).thenReturn(List.of());
         assertThat(service.getPublicEvents(null, null, null, null, null, false, null, 0, 10, request)).hasSize(1);
     }
+
     private Event event() {
         return Event.builder().id(1L).title("Event").annotation("Annotation").description("Description")
                 .initiatorId(1L).initiatorName("User").categoryId(2L).categoryName("Category")

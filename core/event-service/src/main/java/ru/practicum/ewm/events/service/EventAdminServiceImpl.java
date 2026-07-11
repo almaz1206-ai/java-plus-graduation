@@ -35,18 +35,18 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     @Override
     public List<EventFullDto> getEventsAdmin(List<Long> users, List<String> states, List<Long> categories,
-            LocalDateTime rangeStart, LocalDateTime rangeEnd, int from, int size) {
+                                             LocalDateTime rangeStart, LocalDateTime rangeEnd, int from, int size) {
         int page = from / size;
         Pageable pageable = PageRequest.of(page, size);
 
         List<EventState> eventStates = states != null
                 ? states.stream().map(s -> {
-                    try {
-                        return EventState.valueOf(s);
-                    } catch (IllegalArgumentException e) {
-                        throw new BadRequestException("Unknown event state: " + s);
-                    }
-                }).toList()
+            try {
+                return EventState.valueOf(s);
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Unknown event state: " + s);
+            }
+        }).toList()
                 : null;
 
         Specification<Event> spec = Specification

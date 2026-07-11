@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface EventAdminService {
     List<EventFullDto> getEventsAdmin(List<Long> users, List<String> states, List<Long> categories,
-            LocalDateTime rangeStart, LocalDateTime rangeEnd, int from, int size);
+                                      LocalDateTime rangeStart, LocalDateTime rangeEnd, int from, int size);
 
     EventFullDto updateEventAdmin(Long eventId, UpdateEventAdminRequest request);
 }

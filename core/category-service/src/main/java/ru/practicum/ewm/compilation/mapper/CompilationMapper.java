@@ -9,6 +9,8 @@ import ru.practicum.ewm.commonview.UserShortView;
 import ru.practicum.interaction.event.EventSummaryResponse;
 
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @UtilityClass
@@ -18,7 +20,7 @@ public class CompilationMapper {
         return CompilationDto.builder()
                 .id(compilation.getId())
                 .events(compilation.getEventIds().stream()
-                        .map(events::get).filter(java.util.Objects::nonNull).map(CompilationMapper::toView)
+                        .map(events::get).filter(Objects::nonNull).map(CompilationMapper::toView)
                         .collect(Collectors.toList()))
                 .pinned(compilation.getPinned())
                 .title(compilation.getTitle())
@@ -31,7 +33,7 @@ public class CompilationMapper {
                 event.confirmedRequests(), event.views(), new UserShortView(event.initiatorId(), event.initiatorName()));
     }
 
-    public static Compilation toCompilation(CompilationDto compilationDto, java.util.Set<Long> events) {
+    public static Compilation toCompilation(CompilationDto compilationDto, Set<Long> events) {
         Compilation compilation = new Compilation();
         compilation.setId(compilation.getId());
         compilation.setEventIds(events);

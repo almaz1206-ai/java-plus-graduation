@@ -16,7 +16,7 @@ public interface RequestEventFeignClient extends EventContract {
     EventsResponse getByIds(@RequestBody IdsRequest ids);
 
     @Override
-    @GetMapping("/{eventId}/participation-info")
+    @GetMapping("/{eventId}/participation")
     EventParticipationResponse getParticipationDetails(@PathVariable("eventId") Long eventId);
 
     @Override
@@ -36,7 +36,7 @@ public interface RequestEventFeignClient extends EventContract {
     int changeConfirmedRequests(@PathVariable("eventId") Long eventId, @RequestParam("delta") int delta);
 
     @Override
-    @GetMapping("/exists-by-category/{categoryId}")
+    @GetMapping("/category/{categoryId}/exists")
     boolean existsByCategoryId(
             @PathVariable("categoryId") Long categoryId
     );

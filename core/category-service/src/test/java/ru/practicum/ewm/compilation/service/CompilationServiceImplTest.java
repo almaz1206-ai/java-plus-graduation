@@ -14,6 +14,7 @@ import ru.practicum.interaction.event.EventSummaryResponse;
 import ru.practicum.interaction.event.EventsResponse;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,15 +25,20 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CompilationServiceImplTest {
-    @Mock CompilationRepository repository;
-    @Mock EventContract eventContract;
+    @Mock
+    CompilationRepository repository;
+    @Mock
+    EventContract eventContract;
 
     @Test
     void createsCompilationUsingBatchEventLookup() {
-        EventSummaryResponse first = event(1L); EventSummaryResponse second = event(2L);
-        when(eventContract.getByIds(any(IdsRequest.class))).thenReturn(new EventsResponse(java.util.List.of(first, second)));
+        EventSummaryResponse first = event(1L);
+        EventSummaryResponse second = event(2L);
+        when(eventContract.getByIds(any(IdsRequest.class))).thenReturn(new EventsResponse(List.of(first, second)));
         when(repository.save(any(Compilation.class))).thenAnswer(invocation -> {
-            Compilation value = invocation.getArgument(0); value.setId(10L); return value;
+            Compilation value = invocation.getArgument(0);
+            value.setId(10L);
+            return value;
         });
         NewCompilationDto request = new NewCompilationDto(Set.of(1L, 2L), true, "Compilation");
         var result = new CompilationServiceImpl(repository, eventContract).saveCompilation(request);
