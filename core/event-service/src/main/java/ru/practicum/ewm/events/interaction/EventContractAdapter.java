@@ -7,6 +7,7 @@ import ru.practicum.ewm.error.NotFoundException;
 import ru.practicum.ewm.events.model.Event;
 import ru.practicum.ewm.events.repository.EventRepository;
 import ru.practicum.ewm.events.service.EventEnricher;
+import ru.practicum.ewm.events.service.EventRatingService;
 import ru.practicum.interaction.common.IdsRequest;
 import ru.practicum.interaction.event.CategoryResponse;
 import ru.practicum.interaction.event.EventContract;
@@ -23,19 +24,22 @@ import java.util.List;
 public class EventContractAdapter implements EventContract {
     private final EventRepository eventRepository;
     private final EventEnricher enricher;
+    private final EventRatingService ratingService;
 
     @Override
     public EventSummaryResponse getById(Long eventId) {
         Event event = event(eventId);
         enricher.enrich(event);
-        return map(event);
+        return map(event, ratingService.getRating(event));
     }
 
     @Override
     public EventsResponse getByIds(IdsRequest request) {
         List<Event> events = eventRepository.findAllById(request.ids());
         enricher.enrich(events);
-        return new EventsResponse(events.stream().map(this::map).toList());
+        var ratings = ratingService.getRatings(events);
+        return new EventsResponse(events.stream()
+                .map(event -> map(event, ratings.getOrDefault(event.getId(), 0.0))).toList());
     }
 
     @Override
@@ -78,11 +82,11 @@ public class EventContractAdapter implements EventContract {
                 .orElseThrow(() -> new NotFoundException("Event with id=" + id + " was not found"));
     }
 
-    private EventSummaryResponse map(Event event) {
+    private EventSummaryResponse map(Event event, double rating) {
         return new EventSummaryResponse(event.getId(), event.getTitle(), event.getAnnotation(),
                 event.getInitiatorId(), event.getInitiatorName(),
                 new CategoryResponse(event.getCategoryId(), event.getCategoryName()), event.getPaid(),
-                event.getEventDate(), event.getConfirmedRequests(), event.getViews());
+                event.getEventDate(), event.getConfirmedRequests(), rating);
     }
 
 }

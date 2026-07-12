@@ -26,6 +26,11 @@ public class RequestInternalController {
         return contract.exists(userId, eventId);
     }
 
+    @GetMapping("/users/{userId}/events/{eventId}/confirmed")
+    public ParticipationRequestExistsResponse confirmed(@PathVariable Long userId, @PathVariable Long eventId) {
+        return contract.hasConfirmedParticipation(userId, eventId);
+    }
+
     @PostMapping("/events/statuses")
     public RequestStatusesResponse statuses(@RequestBody IdsRequest ids) {
         return contract.getStatuses(ids);

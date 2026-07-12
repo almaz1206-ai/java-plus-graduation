@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import ru.practicum.ewm.events.dto.EventRequestStatusUpdateRequest;
 import ru.practicum.ewm.events.dto.EventRequestStatusUpdateResult;
 import ru.practicum.ewm.request.model.StatusRequest;
@@ -17,7 +19,11 @@ import ru.practicum.interaction.event.EventContract;
 import ru.practicum.interaction.event.EventParticipationResponse;
 import ru.practicum.interaction.event.EventState;
 import ru.practicum.interaction.user.UserContract;
+import ru.practicum.ewm.stats.client.ActionType;
+import ru.practicum.ewm.stats.client.CollectorClient;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
@@ -31,6 +37,8 @@ public class RequestServiceImpl implements RequestService {
     private final RequestRepository requestRepository;
     private final UserContract userContract;
     private final EventContract eventContract;
+    private final CollectorClient collectorClient;
+    private final Clock clock;
 
     @Override
     @Transactional
@@ -86,6 +94,7 @@ public class RequestServiceImpl implements RequestService {
             eventContract.changeConfirmedRequests(eventId, 1);
         }
 
+        sendRegisterAfterCommit(userId, eventId, Instant.now(clock));
         return result;
     }
 
@@ -190,5 +199,18 @@ public class RequestServiceImpl implements RequestService {
         return new EventRequestStatusUpdateResult(
                 confirmed.stream().map(RequestMapper::toRequestDto).toList(),
                 rejected.stream().map(RequestMapper::toRequestDto).toList());
+    }
+
+    private void sendRegisterAfterCommit(long userId, long eventId, Instant timestamp) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            collectorClient.collectUserAction(userId, eventId, ActionType.REGISTER, timestamp);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                collectorClient.collectUserAction(userId, eventId, ActionType.REGISTER, timestamp);
+            }
+        });
     }
 }

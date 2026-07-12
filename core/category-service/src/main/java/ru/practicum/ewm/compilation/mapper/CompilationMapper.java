@@ -30,7 +30,7 @@ public class CompilationMapper {
     public static EventShortView toView(EventSummaryResponse event) {
         return new EventShortView(event.id(), event.title(), event.annotation(),
                 new CategoryView(event.category().id(), event.category().name()), event.paid(), event.eventDate(),
-                event.confirmedRequests(), event.views(), new UserShortView(event.initiatorId(), event.initiatorName()));
+                event.confirmedRequests(), event.rating(), new UserShortView(event.initiatorId(), event.initiatorName()));
     }
 
     public static Compilation toCompilation(CompilationDto compilationDto, Set<Long> events) {

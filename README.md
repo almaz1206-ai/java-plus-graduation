@@ -10,7 +10,9 @@ The project is a Maven multi-module Spring Boot system. Public traffic enters th
 - `core/event-service` — event lifecycle and search; owns the `events` database.
 - `core/request-service` — participation requests; owns the `requests` database.
 - `core/category-service` — categories, compilations, comments and likes; owns the `category` database.
-- `ewm-stats-service/stats-server` — hit statistics; owns the `stats` database.
+- `ewm-stats-service/collector` — receives user actions over gRPC and publishes them to Kafka.
+- `ewm-stats-service/aggregator` — incrementally calculates event similarity.
+- `ewm-stats-service/analyzer` — stores interactions and serves recommendations over gRPC.
 - `infra/config-server` — centralized configuration.
 - `infra/discovery-server` — Eureka registry.
 - `infra/gateway-server` — public API routing.
@@ -24,4 +26,4 @@ mvn clean verify
 docker compose up --build
 ```
 
-Gateway is available on port `8080`, Eureka on `8761`, and Config Server on `8888`. Database credentials can be overridden with `USER_DB_PASSWORD`, `EVENT_DB_PASSWORD`, `REQUEST_DB_PASSWORD`, `CATEGORY_DB_PASSWORD`, and `STATS_DB_PASSWORD`.
+Gateway is available on port `8080`, Eureka on `8761`, and Config Server on `8888`. Database credentials can be overridden with `USER_DB_PASSWORD`, `EVENT_DB_PASSWORD`, `REQUEST_DB_PASSWORD`, `CATEGORY_DB_PASSWORD`, and `ANALYZER_DB_PASSWORD`.

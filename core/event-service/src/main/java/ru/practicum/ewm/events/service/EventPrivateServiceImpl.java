@@ -12,10 +12,14 @@ import ru.practicum.interaction.event.CategoryResponse;
 import ru.practicum.ewm.error.BadRequestException;
 import ru.practicum.ewm.error.ConflictException;
 import ru.practicum.ewm.error.NotFoundException;
-import ru.practicum.ewm.events.dto.*;
+import ru.practicum.ewm.events.dto.EventFullDto;
+import ru.practicum.ewm.events.dto.EventShortDto;
+import ru.practicum.ewm.events.dto.NewEventDto;
+import ru.practicum.ewm.events.dto.UpdateEventUserRequest;
 import ru.practicum.ewm.events.mapper.EventMapper;
 import ru.practicum.ewm.events.model.Event;
 import ru.practicum.ewm.events.model.EventState;
+import ru.practicum.ewm.events.model.Location;
 import ru.practicum.ewm.events.repository.EventRepository;
 import ru.practicum.interaction.user.UserContract;
 import ru.practicum.interaction.user.UserResponse;
@@ -33,6 +37,7 @@ public class EventPrivateServiceImpl implements EventPrivateService {
     private final UserContract userContract;
     private final CategoryContract categoryContract;
     private final EventEnricher eventEnricher;
+    private final EventRatingService eventRatingService;
 
     @Override
     public List<EventShortDto> getUserEvents(Long userId, Integer from, Integer size) {
@@ -42,8 +47,9 @@ public class EventPrivateServiceImpl implements EventPrivateService {
         Page<Event> events = eventRepository.findAllByInitiatorId(userId, pageable);
 
         eventEnricher.enrich(events.getContent());
+        var ratings = eventRatingService.getRatings(events.getContent());
         return events.stream()
-                .map(EventMapper::toEventShortDto)
+                .map(event -> EventMapper.toEventShortDto(event, ratings.getOrDefault(event.getId(), 0.0)))
                 .toList();
     }
 
@@ -70,9 +76,8 @@ public class EventPrivateServiceImpl implements EventPrivateService {
         event.setState(EventState.PENDING);
         event.setCreatedOn(LocalDateTime.now());
         event.setConfirmedRequests(0);
-        event.setViews(0L);
         if (newEventDto.getLocation() != null) {
-            ru.practicum.ewm.events.model.Location loc = new ru.practicum.ewm.events.model.Location();
+            Location loc = new Location();
             loc.setLat(newEventDto.getLocation().getLat());
             loc.setLon(newEventDto.getLocation().getLon());
             event.setLocation(loc);
@@ -88,7 +93,7 @@ public class EventPrivateServiceImpl implements EventPrivateService {
                         new NotFoundException(String.format("Event with id: %s was not found", eventId)));
 
         eventEnricher.enrich(event);
-        return EventMapper.toEventFullDto(event);
+        return EventMapper.toEventFullDto(event, eventRatingService.getRating(event));
     }
 
     @Override
@@ -115,7 +120,7 @@ public class EventPrivateServiceImpl implements EventPrivateService {
 
         EventMapper.updateEventFromDto(request, event);
         if (request.getLocation() != null) {
-            ru.practicum.ewm.events.model.Location loc = new ru.practicum.ewm.events.model.Location();
+            Location loc = new Location();
             loc.setLat(request.getLocation().getLat());
             loc.setLon(request.getLocation().getLon());
             event.setLocation(loc);
@@ -123,7 +128,7 @@ public class EventPrivateServiceImpl implements EventPrivateService {
 
         Event saved = eventRepository.save(event);
         eventEnricher.enrich(saved);
-        return EventMapper.toEventFullDto(saved);
+        return EventMapper.toEventFullDto(saved, eventRatingService.getRating(saved));
     }
 
     private void validateEventDate(LocalDateTime eventDate) {

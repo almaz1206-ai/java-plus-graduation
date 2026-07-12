@@ -47,6 +47,6 @@ class CommentServiceImplTest {
 
     private EventSummaryResponse event() {
         return new EventSummaryResponse(2L, "Event", "Annotation", 4L, "Initiator",
-                new CategoryResponse(5L, "Category"), false, LocalDateTime.now(), 0, 0L);
+                new CategoryResponse(5L, "Category"), false, LocalDateTime.now(), 0, 0.0);
     }
 }

@@ -72,7 +72,4 @@ public class Event {
     @Column(nullable = false)
     private Integer confirmedRequests = 0;
 
-    @Builder.Default
-    @Column(nullable = false)
-    private Long views = 0L;
 }

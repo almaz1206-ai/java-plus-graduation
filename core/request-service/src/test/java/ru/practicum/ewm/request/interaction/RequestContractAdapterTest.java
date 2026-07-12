@@ -26,4 +26,23 @@ class RequestContractAdapterTest {
         assertThat(result.counts()).extracting("confirmedCount").containsExactlyInAnyOrder(2L, 3L, 0L);
         verify(repository, times(1)).countByEventIdsAndStatus(anyList(), eq(StatusRequest.CONFIRMED));
     }
+
+    @Test
+    void checksOnlyConfirmedParticipation() {
+        when(repository.existsByRequesterIdAndEventIdAndStatus(10L, 20L, StatusRequest.CONFIRMED))
+                .thenReturn(true);
+
+        var result = new RequestContractAdapter(repository).hasConfirmedParticipation(10L, 20L);
+
+        assertThat(result.exists()).isTrue();
+        verify(repository).existsByRequesterIdAndEventIdAndStatus(10L, 20L, StatusRequest.CONFIRMED);
+    }
+
+    @Test
+    void rejectedRequestIsNotConfirmedParticipation() {
+        when(repository.existsByRequesterIdAndEventIdAndStatus(10L, 20L, StatusRequest.CONFIRMED))
+                .thenReturn(false);
+
+        assertThat(new RequestContractAdapter(repository).hasConfirmedParticipation(10L, 20L).exists()).isFalse();
+    }
 }

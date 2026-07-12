@@ -25,7 +25,7 @@ class ContractSerializationTest {
         assertThat(roundTrip(new IdsRequest(Set.of(1L, 2L)), IdsRequest.class).ids())
                 .containsExactlyInAnyOrder(1L, 2L);
         EventSummaryResponse event = new EventSummaryResponse(2L, "Title", "Annotation", 1L, "User",
-                new CategoryResponse(3L, "Category"), false, LocalDateTime.of(2030, 1, 1, 10, 0), 4, 5L);
+                new CategoryResponse(3L, "Category"), false, LocalDateTime.of(2030, 1, 1, 10, 0), 4, 5.0);
         assertThat(roundTrip(event, EventSummaryResponse.class)).isEqualTo(event);
         RequestStatusResponse status = new RequestStatusResponse(4L, RequestStatus.CONFIRMED);
         assertThat(roundTrip(status, RequestStatusResponse.class)).isEqualTo(status);

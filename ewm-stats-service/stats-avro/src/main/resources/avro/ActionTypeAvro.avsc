@@ -1,0 +1,10 @@
+{
+  "type": "enum",
+  "name": "ActionTypeAvro",
+  "namespace": "ru.practicum.ewm.stats.avro",
+  "symbols": [
+    "VIEW",
+    "REGISTER",
+    "LIKE"
+  ]
+}

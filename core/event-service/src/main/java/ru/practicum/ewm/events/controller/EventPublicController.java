@@ -1,6 +1,5 @@
 package ru.practicum.ewm.events.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -22,6 +21,20 @@ public class EventPublicController {
 
     private final EventPublicService eventService;
 
+    @PutMapping("/{eventId}/like")
+    public void likeEvent(
+            @PathVariable Long eventId,
+            @RequestHeader("X-EWM-USER-ID") long userId) {
+        eventService.likeEvent(eventId, userId);
+    }
+
+    @GetMapping("/recommendations")
+    public List<EventShortDto> getRecommendations(
+            @RequestHeader("X-EWM-USER-ID") long userId,
+            @RequestParam(required = false) @Min(1) Integer size) {
+        return eventService.getRecommendations(userId, size);
+    }
+
     @GetMapping
     public List<EventShortDto> getPublicEvents(
             @RequestParam(required = false) String text,
@@ -32,13 +45,14 @@ public class EventPublicController {
             @RequestParam(defaultValue = "false") Boolean onlyAvailable,
             @RequestParam(required = false) EventSort sort,
             @RequestParam(defaultValue = "0") int from,
-            @RequestParam(defaultValue = "10") @Min(1) int size,
-            HttpServletRequest request) {
-        return eventService.getPublicEvents(text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size, request);
+            @RequestParam(defaultValue = "10") @Min(1) int size) {
+        return eventService.getPublicEvents(text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size);
     }
 
     @GetMapping("/{id}")
-    public EventFullDto getPublicEventById(@PathVariable Long id, HttpServletRequest request) {
-        return eventService.getPublicEventById(id, request);
+    public EventFullDto getPublicEventById(
+            @PathVariable Long id,
+            @RequestHeader("X-EWM-USER-ID") long userId) {
+        return eventService.getPublicEventById(id, userId);
     }
 }

@@ -15,6 +15,10 @@ import ru.practicum.ewm.events.dto.EventInitiatorDto;
 public class EventMapper {
 
     public static EventShortDto toEventShortDto(Event event) {
+        return toEventShortDto(event, 0.0);
+    }
+
+    public static EventShortDto toEventShortDto(Event event, double rating) {
         EventShortDto dto = new EventShortDto();
         dto.setId(event.getId());
         dto.setTitle(event.getTitle());
@@ -28,7 +32,7 @@ public class EventMapper {
         dto.setPaid(event.getPaid());
         dto.setEventDate(event.getEventDate());
         dto.setConfirmedRequests(event.getConfirmedRequests());
-        dto.setViews(event.getViews());
+        dto.setRating(rating);
         if (event.getInitiatorId() != null) {
             EventInitiatorDto initiator = new EventInitiatorDto();
             initiator.setId(event.getInitiatorId());
@@ -39,6 +43,10 @@ public class EventMapper {
     }
 
     public static EventFullDto toEventFullDto(Event event) {
+        return toEventFullDto(event, 0.0);
+    }
+
+    public static EventFullDto toEventFullDto(Event event, double rating) {
         EventFullDto dto = new EventFullDto();
         dto.setId(event.getId());
         dto.setTitle(event.getTitle());
@@ -58,7 +66,7 @@ public class EventMapper {
         dto.setPublishedOn(event.getPublishedOn());
         dto.setState(event.getState());
         dto.setConfirmedRequests(event.getConfirmedRequests());
-        dto.setViews(event.getViews());
+        dto.setRating(rating);
         if (event.getInitiatorId() != null) {
             EventInitiatorDto initiator = new EventInitiatorDto();
             initiator.setId(event.getInitiatorId());
