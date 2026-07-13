@@ -1,15 +1,18 @@
 package ru.practicum.ewm.events.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.practicum.ewm.events.model.Event;
 import ru.practicum.ewm.stats.client.RecommendationsClient;
+import ru.practicum.ewm.stats.client.StatsClientException;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 @Component
+@Slf4j
 @RequiredArgsConstructor
 public class EventRatingService {
     private final RecommendationsClient recommendationsClient;
@@ -22,7 +25,13 @@ public class EventRatingService {
                 .map(Event::getId)
                 .distinct()
                 .toList();
-        return recommendationsClient.getInteractionsCount(eventIds);
+        try {
+            return recommendationsClient.getInteractionsCount(eventIds);
+        } catch (StatsClientException exception) {
+            log.warn("Analyzer is unavailable while loading ratings for {} events; using zero ratings: {}",
+                    eventIds.size(), exception.getMessage());
+            return Map.of();
+        }
     }
 
     public double getRating(Event event) {
