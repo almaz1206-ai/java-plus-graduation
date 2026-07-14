@@ -31,6 +31,8 @@ class EventAdminServiceImplTest {
     CategoryContract categories;
     @Mock
     EventEnricher enricher;
+    @Mock
+    EventRatingService ratingService;
     @InjectMocks
     EventAdminServiceImpl service;
 

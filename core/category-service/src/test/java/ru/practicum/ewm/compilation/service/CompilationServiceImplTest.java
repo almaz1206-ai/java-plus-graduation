@@ -48,6 +48,6 @@ class CompilationServiceImplTest {
 
     private EventSummaryResponse event(Long id) {
         return new EventSummaryResponse(id, "Event " + id, "Annotation", 1L, "User",
-                new CategoryResponse(1L, "Category"), false, LocalDateTime.now(), 0, 0L);
+                new CategoryResponse(1L, "Category"), false, LocalDateTime.now(), 0, 0.0);
     }
 }

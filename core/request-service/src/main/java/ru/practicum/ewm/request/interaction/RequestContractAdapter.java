@@ -43,6 +43,12 @@ public class RequestContractAdapter implements RequestContract {
     }
 
     @Override
+    public ParticipationRequestExistsResponse hasConfirmedParticipation(Long userId, Long eventId) {
+        return new ParticipationRequestExistsResponse(userId, eventId,
+                repository.existsByRequesterIdAndEventIdAndStatus(userId, eventId, StatusRequest.CONFIRMED));
+    }
+
+    @Override
     public RequestStatusesResponse getStatuses(IdsRequest requestIds) {
         return new RequestStatusesResponse(repository.findAllById(requestIds.ids()).stream()
                 .map(request -> new RequestStatusResponse(request.getId(),

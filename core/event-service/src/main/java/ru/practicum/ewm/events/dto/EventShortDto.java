@@ -18,6 +18,7 @@ public class EventShortDto {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime eventDate;
     private Integer confirmedRequests;
-    private Long views;
+    @Builder.Default
+    private Double rating = 0.0;
     private EventInitiatorDto initiator;
 }

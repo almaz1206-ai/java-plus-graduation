@@ -1,6 +1,7 @@
 package ru.practicum.ewm.request.service;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -11,8 +12,15 @@ import ru.practicum.ewm.request.repository.RequestRepository;
 import ru.practicum.interaction.common.ExistenceResponse;
 import ru.practicum.interaction.event.*;
 import ru.practicum.interaction.user.UserContract;
+import ru.practicum.ewm.stats.client.ActionType;
+import ru.practicum.ewm.stats.client.CollectorClient;
+import ru.practicum.ewm.stats.client.StatsClientException;
+import io.grpc.Status;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.*;
@@ -27,8 +35,15 @@ class RequestServiceImplTest {
     UserContract users;
     @Mock
     EventContract events;
-    @InjectMocks
+    @Mock
+    CollectorClient collectorClient;
+    Clock clock = Clock.fixed(Instant.parse("2026-07-12T12:00:00Z"), ZoneOffset.UTC);
     RequestServiceImpl service;
+
+    @BeforeEach
+    void setUp() {
+        service = new RequestServiceImpl(repository, users, events, collectorClient, clock);
+    }
 
     @Test
     void createsRequest() {
@@ -40,6 +55,8 @@ class RequestServiceImplTest {
             return r;
         });
         assertThat(service.addUserRequest(1L, 2L).getStatus()).isEqualTo(StatusRequest.PENDING);
+        verify(collectorClient).collectUserAction(
+                1L, 2L, ActionType.REGISTER, Instant.parse("2026-07-12T12:00:00Z"));
     }
 
     @Test
@@ -48,6 +65,7 @@ class RequestServiceImplTest {
         when(events.getParticipationDetails(2L)).thenReturn(event(3L, EventState.PUBLISHED, 10, true));
         when(repository.existsByRequesterIdAndEventId(1L, 2L)).thenReturn(true);
         assertThatThrownBy(() -> service.addUserRequest(1L, 2L)).isInstanceOf(ConflictException.class);
+        verifyNoInteractions(collectorClient);
     }
 
     @Test
@@ -55,6 +73,7 @@ class RequestServiceImplTest {
         validUser();
         when(events.getParticipationDetails(2L)).thenReturn(event(1L, EventState.PUBLISHED, 10, true));
         assertThatThrownBy(() -> service.addUserRequest(1L, 2L)).isInstanceOf(ConflictException.class);
+        verifyNoInteractions(collectorClient);
     }
 
     @Test
@@ -62,6 +81,18 @@ class RequestServiceImplTest {
         validUser();
         when(events.getParticipationDetails(2L)).thenReturn(event(3L, EventState.PENDING, 10, true));
         assertThatThrownBy(() -> service.addUserRequest(1L, 2L)).isInstanceOf(ConflictException.class);
+        verifyNoInteractions(collectorClient);
+    }
+
+    @Test
+    void doesNotRegisterWhenParticipantLimitIsReached() {
+        validUser();
+        when(events.getParticipationDetails(2L)).thenReturn(event(3L, EventState.PUBLISHED, 1, true));
+        when(repository.countByEventIdAndStatus(2L, StatusRequest.CONFIRMED)).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.addUserRequest(1L, 2L)).isInstanceOf(ConflictException.class);
+
+        verifyNoInteractions(collectorClient);
     }
 
     @Test
@@ -112,6 +143,34 @@ class RequestServiceImplTest {
         });
         assertThat(service.addUserRequest(1L, 2L).getStatus()).isEqualTo(StatusRequest.CONFIRMED);
         verify(events).changeConfirmedRequests(2L, 1);
+        verify(collectorClient).collectUserAction(
+                1L, 2L, ActionType.REGISTER, Instant.parse("2026-07-12T12:00:00Z"));
+    }
+
+    @Test
+    void doesNotRegisterWhenSavingRequestFails() {
+        validUser();
+        when(events.getParticipationDetails(2L)).thenReturn(event(3L, EventState.PUBLISHED, 10, true));
+        when(repository.save(any(Request.class))).thenThrow(new IllegalStateException("database unavailable"));
+
+        assertThatThrownBy(() -> service.addUserRequest(1L, 2L)).isInstanceOf(IllegalStateException.class);
+
+        verifyNoInteractions(collectorClient);
+    }
+
+    @Test
+    void propagatesCollectorFailureAfterSavingRequest() {
+        validUser();
+        when(events.getParticipationDetails(2L)).thenReturn(event(3L, EventState.PUBLISHED, 10, true));
+        when(repository.save(any(Request.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        StatsClientException failure = new StatsClientException(
+                "collectUserAction", Status.UNAVAILABLE.asRuntimeException());
+        doThrow(failure).when(collectorClient).collectUserAction(
+                1L, 2L, ActionType.REGISTER, Instant.parse("2026-07-12T12:00:00Z"));
+
+        assertThatThrownBy(() -> service.addUserRequest(1L, 2L)).isSameAs(failure);
+
+        verify(repository).save(any(Request.class));
     }
 
     private void validUser() {

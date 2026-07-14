@@ -9,5 +9,7 @@ public interface RequestContract {
 
     ParticipationRequestExistsResponse exists(Long userId, Long eventId);
 
+    ParticipationRequestExistsResponse hasConfirmedParticipation(Long userId, Long eventId);
+
     RequestStatusesResponse getStatuses(IdsRequest requestIds);
 }

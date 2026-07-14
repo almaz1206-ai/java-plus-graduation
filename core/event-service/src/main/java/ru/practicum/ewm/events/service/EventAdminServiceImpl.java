@@ -17,6 +17,7 @@ import ru.practicum.ewm.events.dto.UpdateEventAdminRequest;
 import ru.practicum.ewm.events.mapper.EventMapper;
 import ru.practicum.ewm.events.model.Event;
 import ru.practicum.ewm.events.model.EventState;
+import ru.practicum.ewm.events.model.Location;
 import ru.practicum.ewm.events.repository.EventRepository;
 import ru.practicum.ewm.events.repository.EventSpecification;
 
@@ -32,6 +33,7 @@ public class EventAdminServiceImpl implements EventAdminService {
     private final EventRepository eventRepository;
     private final CategoryContract categoryContract;
     private final EventEnricher eventEnricher;
+    private final EventRatingService eventRatingService;
 
     @Override
     public List<EventFullDto> getEventsAdmin(List<Long> users, List<String> states, List<Long> categories,
@@ -58,9 +60,10 @@ public class EventAdminServiceImpl implements EventAdminService {
 
         List<Event> events = eventRepository.findAll(spec, pageable).getContent();
         eventEnricher.enrich(events);
+        var ratings = eventRatingService.getRatings(events);
         return events
                 .stream()
-                .map(EventMapper::toEventFullDto)
+                .map(event -> EventMapper.toEventFullDto(event, ratings.getOrDefault(event.getId(), 0.0)))
                 .toList();
     }
 
@@ -106,7 +109,7 @@ public class EventAdminServiceImpl implements EventAdminService {
             event.setCategoryName(category.name());
         }
         if (request.getLocation() != null) {
-            ru.practicum.ewm.events.model.Location loc = new ru.practicum.ewm.events.model.Location();
+            Location loc = new Location();
             loc.setLat(request.getLocation().getLat());
             loc.setLon(request.getLocation().getLon());
             event.setLocation(loc);
@@ -114,6 +117,6 @@ public class EventAdminServiceImpl implements EventAdminService {
 
         Event saved = eventRepository.save(event);
         eventEnricher.enrich(saved);
-        return EventMapper.toEventFullDto(saved);
+        return EventMapper.toEventFullDto(saved, eventRatingService.getRating(saved));
     }
 }

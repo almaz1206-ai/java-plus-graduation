@@ -57,7 +57,7 @@ public class CompilationServiceImpl implements CompilationService {
         log.info("Updating compilation id={}", compId);
         Compilation compilation = getOrThrow(compId);
 
-        Map<Long, ru.practicum.interaction.event.EventSummaryResponse> eventMap = null;
+        Map<Long, EventSummaryResponse> eventMap = null;
         if (request.getEvents() != null) {
             eventMap = eventMap(request.getEvents());
             compilation.setEventIds(new HashSet<>(eventMap.keySet()));
@@ -82,7 +82,7 @@ public class CompilationServiceImpl implements CompilationService {
                 compilationRepository.findAllWithEvents(pageable);
         Set<Long> ids = compilations.stream().flatMap(c -> c.getEventIds().stream()).collect(Collectors.toSet());
         var events = eventContract.getByIds(new IdsRequest(ids)).events().stream()
-                .collect(Collectors.toMap(ru.practicum.interaction.event.EventSummaryResponse::id, e -> e));
+                .collect(Collectors.toMap(EventSummaryResponse::id, e -> e));
         return compilations.stream().map(c -> CompilationMapper.toCompilationDto(c, events)).toList();
     }
 
@@ -91,7 +91,7 @@ public class CompilationServiceImpl implements CompilationService {
         log.info("Getting compilation id={}", compId);
         Compilation compilation = getOrThrow(compId);
         var events = eventContract.getByIds(new IdsRequest(compilation.getEventIds())).events().stream()
-                .collect(Collectors.toMap(ru.practicum.interaction.event.EventSummaryResponse::id, e -> e));
+                .collect(Collectors.toMap(EventSummaryResponse::id, e -> e));
         return CompilationMapper.toCompilationDto(compilation, events);
     }
 
@@ -105,12 +105,12 @@ public class CompilationServiceImpl implements CompilationService {
             return Map.of();
         }
         return eventContract.getByIds(new IdsRequest(ids)).events().stream()
-                .collect(Collectors.toMap(ru.practicum.interaction.event.EventSummaryResponse::id, e -> e));
+                .collect(Collectors.toMap(EventSummaryResponse::id, e -> e));
     }
 
     private CompilationDto toDto(Compilation compilation) {
         var events = eventContract.getByIds(new IdsRequest(compilation.getEventIds())).events().stream()
-                .collect(Collectors.toMap(ru.practicum.interaction.event.EventSummaryResponse::id, e -> e));
+                .collect(Collectors.toMap(EventSummaryResponse::id, e -> e));
         return CompilationMapper.toCompilationDto(compilation, events);
     }
 }

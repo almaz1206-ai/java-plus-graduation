@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.error.*;
+import ru.practicum.ewm.stats.client.StatsClientException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +34,13 @@ public class EventErrorHandler {
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     EventApiError dependencyUnavailable(FeignException e) {
         return error("A dependent service is temporarily unavailable.", "Inter-service request failed.",
+                HttpStatus.SERVICE_UNAVAILABLE, List.of());
+    }
+
+    @ExceptionHandler(StatsClientException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    EventApiError statsUnavailable(StatsClientException e) {
+        return error("The recommendation service is temporarily unavailable.", "Inter-service request failed.",
                 HttpStatus.SERVICE_UNAVAILABLE, List.of());
     }
 

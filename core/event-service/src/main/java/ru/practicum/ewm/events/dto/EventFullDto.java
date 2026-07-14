@@ -27,7 +27,8 @@ public class EventFullDto {
     private LocalDateTime publishedOn;
     private EventState state;
     private Integer confirmedRequests;
-    private Long views;
+    @Builder.Default
+    private Double rating = 0.0;
     private EventInitiatorDto initiator;
     private Location location;
 }

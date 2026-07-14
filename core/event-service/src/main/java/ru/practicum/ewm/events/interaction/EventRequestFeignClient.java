@@ -20,6 +20,12 @@ public interface EventRequestFeignClient extends RequestContract {
     ParticipationRequestExistsResponse exists(@PathVariable("userId") Long userId, @PathVariable("eventId") Long eventId);
 
     @Override
+    @GetMapping("/users/{userId}/events/{eventId}/confirmed")
+    ParticipationRequestExistsResponse hasConfirmedParticipation(
+            @PathVariable("userId") Long userId,
+            @PathVariable("eventId") Long eventId);
+
+    @Override
     @PostMapping("/events/statuses")
     RequestStatusesResponse getStatuses(@RequestBody IdsRequest ids);
 }

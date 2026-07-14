@@ -36,6 +36,8 @@ class EventPrivateServiceImplTest {
     CategoryContract categories;
     @Mock
     EventEnricher enricher;
+    @Mock
+    EventRatingService ratingService;
     @InjectMocks
     EventPrivateServiceImpl service;
 
